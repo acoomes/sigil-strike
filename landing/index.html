@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>SIGIL STRIKE — Draw glyphs. Cast spells. Win.</title>
+<meta name="description" content="A wizard duel where you draw glyphs in real-time to cast spells. Click-and-drag shapes to attack; defend with a shield glyph when AI fires." />
+<meta property="og:title" content="SIGIL STRIKE" />
+<meta property="og:description" content="Draw glyphs in real-time to cast spells. 4 elements, survival mode, upgrades." />
+<meta property="og:image" content="assets/library_logo.png" />
+<link rel="icon" href="assets/library_logo.png" />
+<style>
+  :root {
+    --bg-0: #07041a;
+    --bg-1: #1a0a3a;
+    --player: #5fd4ff;
+    --ai: #ff5a7a;
+    --text: #e8e6ff;
+    --muted: #8a86b8;
+    --fire: #ff7a3a;
+    --frost: #6ad8ff;
+    --lightning: #ffe14a;
+    --thorns: #7aff8a;
+    --gold: #ffd700;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    background: var(--bg-0);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.5;
+  }
+  body {
+    background: radial-gradient(ellipse at top, var(--bg-1) 0%, var(--bg-0) 60%);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  a { color: var(--player); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* === Layout === */
+  .container { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+  section { padding: 80px 0; }
+  section.tight { padding: 48px 0; }
+
+  /* === Hero === */
+  .hero {
+    min-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 60px 24px;
+    position: relative;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at 50% 50%, rgba(95,212,255,0.08) 0%, transparent 60%);
+    pointer-events: none;
+  }
+  .hero .badge {
+    display: inline-block;
+    padding: 6px 14px;
+    border: 1px solid rgba(95,212,255,0.3);
+    border-radius: 100px;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    color: var(--player);
+    margin-bottom: 24px;
+  }
+  .hero h1 {
+    font-size: clamp(48px, 10vw, 120px);
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    background: linear-gradient(180deg, #fff 0%, var(--player) 50%, #4a8aff 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-shadow: 0 0 80px rgba(95,212,255,0.3);
+    margin-bottom: 12px;
+  }
+  .hero .tagline {
+    font-size: clamp(18px, 2.4vw, 26px);
+    letter-spacing: 0.15em;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .hero .sub {
+    color: var(--muted);
+    font-size: 14px;
+    letter-spacing: 0.1em;
+    margin-bottom: 40px;
+    max-width: 600px;
+  }
+  .cta-row {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .btn {
+    display: inline-block;
+    padding: 16px 36px;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+  }
+  .btn-primary {
+    background: var(--player);
+    color: var(--bg-0);
+    box-shadow: 0 4px 24px rgba(95,212,255,0.4);
+  }
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(95,212,255,0.6);
+    text-decoration: none;
+  }
+  .btn-secondary {
+    background: transparent;
+    border-color: rgba(255,255,255,0.2);
+    color: var(--text);
+  }
+  .btn-secondary:hover {
+    border-color: var(--player);
+    background: rgba(95,212,255,0.08);
+    text-decoration: none;
+  }
+
+  /* === Game iframe === */
+  .play-section {
+    padding: 0 0 80px;
+  }
+  .play-frame {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16/9;
+    max-height: 70vh;
+    background: #000;
+    border: 1px solid rgba(95,212,255,0.2);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 8px 60px rgba(95,212,255,0.15);
+  }
+  .play-frame iframe {
+    width: 100%;
+    height: 100%;
+    border: 0;
+    display: block;
+  }
+  .play-frame .play-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(7,4,26,0.85);
+    backdrop-filter: blur(8px);
+    transition: opacity 0.3s ease;
+  }
+  .play-frame .play-overlay.hidden { opacity: 0; pointer-events: none; }
+  .play-frame .play-overlay .play-btn {
+    width: 96px; height: 96px;
+    border-radius: 50%;
+    background: var(--player);
+    color: var(--bg-0);
+    border: 0;
+    font-size: 32px;
+    cursor: pointer;
+    box-shadow: 0 4px 30px rgba(95,212,255,0.6);
+    transition: transform 0.2s ease;
+  }
+  .play-frame .play-overlay .play-btn:hover { transform: scale(1.08); }
+
+  /* === Screenshots === */
+  .section-title {
+    text-align: center;
+    margin-bottom: 48px;
+  }
+  .section-title h2 {
+    font-size: clamp(28px, 4vw, 44px);
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    margin-bottom: 8px;
+  }
+  .section-title p {
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    font-size: 14px;
+  }
+  .screenshots {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+  }
+  .screenshots img {
+    width: 100%;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.08);
+    transition: transform 0.3s ease;
+  }
+  .screenshots img:hover { transform: scale(1.02); }
+
+  /* === Features === */
+  .features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 20px;
+  }
+  .feature {
+    padding: 24px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px;
+  }
+  .feature .glyph-row {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 16px;
+    align-items: center;
+  }
+  .feature h3 {
+    font-size: 16px;
+    letter-spacing: 0.1em;
+    margin-bottom: 8px;
+  }
+  .feature p {
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .feature .glyph {
+    width: 36px; height: 36px;
+    filter: drop-shadow(0 0 6px currentColor);
+  }
+  .feature.fire { color: var(--fire); }
+  .feature.frost { color: var(--frost); }
+  .feature.lightning { color: var(--lightning); }
+  .feature.thorns { color: var(--thorns); }
+
+  /* === Buy section === */
+  .buy-section {
+    background: linear-gradient(180deg, transparent 0%, rgba(255,215,0,0.04) 50%, transparent 100%);
+    border-top: 1px solid rgba(255,215,0,0.15);
+    border-bottom: 1px solid rgba(255,215,0,0.15);
+  }
+  .buy-card {
+    max-width: 480px;
+    margin: 0 auto;
+    text-align: center;
+    padding: 48px 32px;
+    background: rgba(7,4,26,0.6);
+    border: 1px solid rgba(255,215,0,0.3);
+    border-radius: 20px;
+  }
+  .buy-card .price {
+    font-size: 56px;
+    font-weight: 900;
+    color: var(--gold);
+    letter-spacing: 0.05em;
+    text-shadow: 0 0 30px rgba(255,215,0,0.4);
+  }
+  .buy-card .price-note {
+    color: var(--muted);
+    font-size: 13px;
+    letter-spacing: 0.15em;
+    margin-bottom: 24px;
+  }
+  .buy-card ul {
+    list-style: none;
+    text-align: left;
+    margin: 24px auto;
+    max-width: 320px;
+  }
+  .buy-card li {
+    padding: 8px 0;
+    color: var(--text);
+    font-size: 14px;
+    letter-spacing: 0.05em;
+  }
+  .buy-card li::before {
+    content: '✓';
+    color: var(--gold);
+    font-weight: 700;
+    margin-right: 12px;
+  }
+
+  /* === Footer === */
+  footer {
+    padding: 40px 0;
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    border-top: 1px solid rgba(255,255,255,0.05);
+  }
+  footer a { color: var(--muted); }
+  footer a:hover { color: var(--player); }
+</style>
+</head>
+<body>
+
+<!-- Hero -->
+<header class="hero">
+  <div class="badge">FREE DEMO · PAY WHAT YOU WANT</div>
+  <h1>SIGIL STRIKE</h1>
+  <div class="tagline">DRAW GLYPHS · CAST SPELLS · WIN THE DUEL</div>
+  <p class="sub">A wizard duel where you <strong>draw glyphs in real-time</strong> to cast spells.
+    Circle for fire. Triangle for frost. Zigzag for lightning. Square for thorns.
+    Draw a circle to shield when the AI telegraphs an attack.</p>
+  <div class="cta-row">
+    <a href="#play" class="btn btn-primary">PLAY NOW</a>
+    <a href="#buy" class="btn btn-secondary">GET FULL VERSION</a>
+  </div>
+</header>
+
+<!-- Play -->
+<section id="play" class="play-section container">
+  <div class="play-frame">
+    <iframe src="../index.html" allow="autoplay; fullscreen" title="SIGIL STRIKE playable demo"></iframe>
+    <div class="play-overlay" id="play-overlay">
+      <button class="play-btn" id="play-btn" aria-label="Start game">▶</button>
+    </div>
+  </div>
+</section>
+
+<!-- Screenshots -->
+<section class="container">
+  <div class="section-title">
+    <h2>FOUR ELEMENTS · ENDLESS RUNS</h2>
+    <p>Survival mode with upgrades · Classic duel · Mobile-friendly</p>
+  </div>
+  <div class="screenshots">
+    <img src="assets/screenshot_1.png" alt="Gameplay screenshot" />
+    <img src="assets/screenshot_2.png" alt="Gameplay screenshot" />
+    <img src="assets/screenshot_3.png" alt="Gameplay screenshot" />
+  </div>
+</section>
+
+<!-- Features -->
+<section class="container">
+  <div class="section-title">
+    <h2>HOW TO PLAY</h2>
+    <p>Draw. Block. Win.</p>
+  </div>
+  <div class="features">
+    <div class="feature fire">
+      <div class="glyph-row">
+        <svg class="glyph" viewBox="-20 -20 40 40"><circle cx="0" cy="0" r="14" fill="none" stroke="currentColor" stroke-width="3"/></svg>
+        <h3>FIRE</h3>
+      </div>
+      <p>Draw a circle. Fast cast, +50% crit chance. Beats frost.</p>
+    </div>
+    <div class="feature frost">
+      <div class="glyph-row">
+        <svg class="glyph" viewBox="-20 -20 40 40"><polygon points="0,-14 13,10 -13,10" fill="none" stroke="currentColor" stroke-width="3"/></svg>
+        <h3>FROST</h3>
+      </div>
+      <p>Draw a triangle. Slows next AI cast by 1 second. Beats lightning.</p>
+    </div>
+    <div class="feature lightning">
+      <div class="glyph-row">
+        <svg class="glyph" viewBox="-20 -20 40 40"><polyline points="-14,-12 0,0 -8,4 6,12" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/></svg>
+        <h3>LIGHTNING</h3>
+      </div>
+      <p>Draw a zigzag. Ignores 30% of shields. Beats thorns.</p>
+    </div>
+    <div class="feature thorns">
+      <div class="glyph-row">
+        <svg class="glyph" viewBox="-20 -20 40 40"><rect x="-12" y="-12" width="24" height="24" fill="none" stroke="currentColor" stroke-width="3"/></svg>
+        <h3>THORNS</h3>
+      </div>
+      <p>Draw a square. Reflects 50% damage when blocked. Beats fire.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Buy -->
+<section id="buy" class="buy-section">
+  <div class="container">
+    <div class="buy-card">
+      <div class="price">$5</div>
+      <div class="price-note">ONE-TIME · DRM-FREE · STEAM KEY INCLUDED</div>
+      <ul>
+        <li>Full Classic Duel mode</li>
+        <li>Survival mode with 6 upgrades</li>
+        <li>Steam key (coming soon)</li>
+        <li>Lifetime updates</li>
+        <li>Support indie development</li>
+      </ul>
+      <a href="https://buy.stripe.com/REPLACE_WITH_YOUR_STRIPE_LINK"
+         class="btn btn-primary" style="width:100%;text-align:center;">
+        BUY ON STRIPE
+      </a>
+      <p style="margin-top:16px;font-size:11px;color:var(--muted);">
+        Prefer itch.io or Steam? <a href="mailto:hello@raeclaw.dev">Email me</a> for a key.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <div class="container">
+    <p>SIGIL STRIKE · MADE BY RAECLAW · 2026</p>
+    <p style="margin-top:8px;">
+      <a href="../index.html">PLAY DEMO</a> ·
+      <a href="#buy">BUY</a> ·
+      <a href="mailto:hello@raeclaw.dev">CONTACT</a>
+    </p>
+  </div>
+</footer>
+
+<script>
+  // Hide overlay when user starts the game
+  const iframe = document.querySelector('.play-frame iframe');
+  const overlay = document.getElementById('play-overlay');
+  const btn = document.getElementById('play-btn');
+  btn.addEventListener('click', () => overlay.classList.add('hidden'));
+  // Also hide on first click anywhere in the iframe area (covers cases where game auto-starts after click)
+  document.querySelector('.play-frame').addEventListener('click', (e) => {
+    if (e.target.tagName !== 'BUTTON') overlay.classList.add('hidden');
+  });
+</script>
+
+</body>
+</html>
