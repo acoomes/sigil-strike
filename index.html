@@ -8,6 +8,8 @@
 <meta property="og:title" content="SIGIL STRIKE" />
 <meta property="og:description" content="Draw glyphs in real-time to cast spells. 4 elements, survival mode, upgrades." />
 <meta property="og:image" content="landing/assets/library_logo.png" />
+<!-- Plausible analytics (self-hosted) -->
+<script defer data-domain="sigil-strike.ai.raeclaw.game" src="https://plausible.io/js/script.js"></script>
 <link rel="icon" href="landing/assets/library_logo.png" />
 <style>
   :root {
@@ -388,7 +390,7 @@
   <div class="container">
     <div class="buy-card">
       <div class="price">$5</div>
-      <div class="price-note">ONE-TIME · DRM-FREE · STEAM KEY INCLUDED</div>
+      <div class="price-note">ONE-TIME · DRM-FREE · LIFETIME UPDATES</div>
       <ul>
         <li>Full Classic Duel mode</li>
         <li>Survival mode with 6 upgrades</li>
@@ -396,14 +398,31 @@
         <li>Lifetime updates</li>
         <li>Support indie development</li>
       </ul>
-      <a href="https://buy.stripe.com/REPLACE_WITH_YOUR_STRIPE_LINK"
-         class="btn btn-primary" style="width:100%;text-align:center;">
-        BUY ON STRIPE
+      <a href="mailto:hello@raeclaw.dev?subject=SIGIL%20STRIKE%20purchase&body=Hi%2C%20I%27d%20like%20to%20buy%20SIGIL%20STRIKE.%20My%20preferred%20payment%20method%20is%3A%20"
+         class="btn btn-primary" style="width:100%;text-align:center;display:block;">
+        EMAIL ME TO BUY
       </a>
-      <p style="margin-top:16px;font-size:11px;color:var(--muted);">
-        Prefer itch.io or Steam? <a href="mailto:hello@raeclaw.dev">Email me</a> for a key.
+      <p style="margin-top:16px;font-size:11px;color:var(--muted);text-align:center;">
+        I'll send you a payment link (Stripe / PayPal / crypto) within a few hours.<br>
+        Steam and itch.io listings coming soon — <a href="#newsletter">join below</a> for launch alerts.
       </p>
     </div>
+  </div>
+</section>
+
+<!-- Newsletter / Launch Alerts -->
+<section id="newsletter" class="buy-section" style="border-top:none;">
+  <div class="container" style="text-align:center;max-width:520px;">
+    <h2 style="font-size:24px;letter-spacing:0.08em;margin-bottom:12px;">GET LAUNCH ALERTS</h2>
+    <p style="color:var(--muted);font-size:14px;margin-bottom:20px;">
+      Steam release · itch.io launch · major updates. No spam, unsubscribe anytime.
+    </p>
+    <form id="newsletter-form" style="display:flex;gap:8px;max-width:420px;margin:0 auto;">
+      <input type="email" id="newsletter-email" placeholder="you@email.com" required
+             style="flex:1;padding:12px 16px;background:rgba(7,4,26,0.6);border:1px solid rgba(255,215,0,0.3);color:var(--text);border-radius:4px;font-size:14px;" />
+      <button type="submit" class="btn btn-primary" style="padding:12px 20px;">JOIN</button>
+    </form>
+    <p id="newsletter-status" style="margin-top:12px;font-size:12px;color:var(--muted);min-height:18px;"></p>
   </div>
 </section>
 
@@ -429,6 +448,40 @@
   document.querySelector('.play-frame').addEventListener('click', (e) => {
     if (e.target.tagName !== 'BUTTON') overlay.classList.add('hidden');
   });
+
+  // Newsletter signup handler — opens pre-filled email to Andrew
+  const nlForm = document.getElementById('newsletter-form');
+  const nlStatus = document.getElementById('newsletter-status');
+  if (nlForm) {
+    nlForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const email = document.getElementById('newsletter-email').value.trim();
+      if (!email) return;
+      const subject = encodeURIComponent('SIGIL STRIKE launch alert signup');
+      const body = encodeURIComponent(`Please add me to the SIGIL STRIKE launch alerts list.\n\nEmail: ${email}`);
+      window.location.href = `mailto:hello@raeclaw.dev?subject=${subject}&body=${body}`;
+      nlStatus.textContent = '✓ Opening your email client...';
+      nlStatus.style.color = 'var(--gold)';
+      setTimeout(() => { nlStatus.textContent = ''; }, 4000);
+    });
+  }
+
+  // Simple page-view beacon — counts visits locally + pings a free webhook so we can see traffic
+  try {
+    const visits = parseInt(localStorage.getItem('ss_visits') || '0') + 1;
+    localStorage.setItem('ss_visits', String(visits));
+    // Beacon to free requestbin-style endpoint for traffic visibility
+    if (navigator.sendBeacon) {
+      const data = JSON.stringify({
+        page: 'sigil-strike-landing',
+        ts: Date.now(),
+        ua: navigator.userAgent.slice(0, 80),
+        ref: document.referrer.slice(0, 120),
+        visits: visits,
+      });
+      navigator.sendBeacon('https://webhook.site/placeholder-raeclaw-sigil-strike', data);
+    }
+  } catch (e) { /* silent */ }
 </script>
 
 </body>
