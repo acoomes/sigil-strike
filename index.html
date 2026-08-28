@@ -414,7 +414,7 @@
     <div class="wave-sub" id="wave-sub-text"></div>
   </div>
   <div id="score">SCORE: <span id="score-val">0</span></div>
-  <div id="footer">DRAW TO CAST • CIRCLE=SHIELD • R=RESTART</div>
+  <div id="footer">DRAW GLYPHS TO CAST · CIRCLE ALSO BLOCKS INCOMING · R=RESTART</div>
 
   <!-- MENU SCREEN -->
   <div id="menu-screen" class="screen">
@@ -1042,8 +1042,9 @@
       burst((path[0].x+path[path.length-1].x)/2, (path[0].y+path[path.length-1].y)/2, '#888', 8, 80);
       return;
     }
-    const isShield = glyph === 'circle' || glyph === 'triangle' || glyph === 'square';
-    if (game.ai.casting && game.ai.casting.warning > 0 && isShield) {
+    // Shield: only circle is a shield glyph. Other closed shapes always cast their element.
+    const isShield = glyph === 'circle';
+    if (isShield && game.ai.casting && game.ai.casting.warning > 0) {
       const stats = getPlayerStats(game.upgrades);
       game.player.shieldTimer = stats.shieldDur;
       game.ai.casting.warning = 0;
@@ -1100,8 +1101,6 @@
     if (game.state === STATE.PLAYING) {
       game.timeAlive += dt;
       const stats = getPlayerStats(game.upgrades);
-      game.player.mana = Math.min(stats.hpMax > 0 ? 100 : 100, game.player.mana + stats.manaRegen * dt);
-      if (game.player.mana > 100) game.player.mana = 100; // cap
       game.player.mana = Math.min(100, game.player.mana + stats.manaRegen * dt);
       game.player.shieldTimer = Math.max(0, game.player.shieldTimer - dt);
       game.player.hitFlash = Math.max(0, game.player.hitFlash - dt * 2);
