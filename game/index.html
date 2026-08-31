@@ -3,382 +3,13 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no" />
+<meta name="theme-color" content="#07041a" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<link rel="manifest" href="../manifest.webmanifest" />
+<link rel="apple-touch-icon" href="../pwa-icon.svg" />
 <title>SIGIL STRIKE</title>
-<style>
-  :root {
-    --bg-0: #07041a;
-    --bg-1: #1a0a3a;
-    --player: #5fd4ff;
-    --ai: #ff5a7a;
-    --text: #e8e6ff;
-    --muted: #8a86b8;
-    --fire: #ff7a3a;
-    --frost: #6ad8ff;
-    --lightning: #ffe14a;
-    --thorns: #7aff8a;
-    --gold: #ffd700;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body {
-    width: 100%; height: 100%; overflow: hidden;
-    background: #000;
-    color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-    -webkit-user-select: none; user-select: none;
-    touch-action: none;
-  }
-  body {
-    display: flex; align-items: center; justify-content: center;
-    background: radial-gradient(ellipse at center, var(--bg-1) 0%, var(--bg-0) 70%);
-  }
-  #wrap {
-    position: relative;
-    width: 100vw; height: 100vh;
-    max-width: 100vw; max-height: 100vh;
-    overflow: hidden;
-  }
-  canvas#game {
-    position: absolute; inset: 0;
-    width: 100%; height: 100%;
-    display: block;
-    image-rendering: -webkit-optimize-contrast;
-  }
-  #hud {
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    padding: 16px 24px;
-    display: flex; justify-content: space-between; align-items: center;
-    pointer-events: none;
-    z-index: 10;
-    font-size: 14px;
-    letter-spacing: 0.05em;
-    text-shadow: 0 0 8px rgba(0,0,0,0.8);
-  }
-  #hud-top {
-    display: flex; justify-content: space-between; align-items: flex-start;
-    pointer-events: none;
-    z-index: 10;
-    font-size: 13px;
-    letter-spacing: 0.05em;
-    text-shadow: 0 0 8px rgba(0,0,0,0.8);
-  }
-  #toast {
-    position: absolute;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    pointer-events: none;
-    z-index: 15;
-    font-size: 24px;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    text-shadow: 0 0 20px currentColor;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-  }
-  #toast.show { opacity: 1; }
-  #score {
-    position: absolute;
-    bottom: 16px; right: 24px;
-    color: var(--muted);
-    font-size: 12px;
-    letter-spacing: 0.1em;
-    pointer-events: none;
-    z-index: 10;
-  }
-  #footer {
-    position: absolute;
-    bottom: 16px; left: 24px;
-    color: var(--muted);
-    font-size: 11px;
-    letter-spacing: 0.1em;
-    pointer-events: none;
-    z-index: 10;
-    opacity: 0.6;
-  }
-
-  /* === OVERLAY SCREENS === */
-  .screen {
-    position: absolute; inset: 0;
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    text-align: center;
-    z-index: 30;
-    background: rgba(7, 4, 26, 0.92);
-    backdrop-filter: blur(4px);
-    transition: opacity 0.3s ease;
-    overflow-y: auto;
-    padding: 20px;
-  }
-  .screen.hidden { opacity: 0; pointer-events: none; }
-
-  .screen h1 {
-    font-size: clamp(40px, 8vw, 96px);
-    font-weight: 900;
-    letter-spacing: 0.15em;
-    background: linear-gradient(180deg, #fff 0%, var(--player) 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-    margin-bottom: 8px;
-    text-shadow: 0 0 40px rgba(95,212,255,0.4);
-  }
-  .screen h2 {
-    font-size: clamp(24px, 4vw, 48px);
-    font-weight: 800;
-    letter-spacing: 0.12em;
-    color: var(--text);
-    margin-bottom: 8px;
-  }
-  .screen .sub {
-    color: var(--muted);
-    font-size: 16px;
-    letter-spacing: 0.2em;
-    margin-bottom: 40px;
-  }
-  .screen .prompt {
-    color: var(--player);
-    font-size: 20px;
-    letter-spacing: 0.1em;
-    animation: pulse 1.6s ease-in-out infinite;
-  }
-  @keyframes pulse {
-    0%, 100% { opacity: 0.5; }
-    50% { opacity: 1; }
-  }
-
-  /* Mode buttons */
-  .mode-btn {
-    display: block;
-    width: 280px;
-    padding: 16px 24px;
-    margin: 10px auto;
-    background: rgba(95,212,255,0.08);
-    border: 1px solid rgba(95,212,255,0.3);
-    border-radius: 12px;
-    color: var(--text);
-    font-size: 16px;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
-  .mode-btn:hover {
-    background: rgba(95,212,255,0.18);
-    border-color: var(--player);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 20px rgba(95,212,255,0.2);
-  }
-  .mode-btn .desc {
-    display: block;
-    font-size: 11px;
-    font-weight: 400;
-    color: var(--muted);
-    margin-top: 4px;
-    letter-spacing: 0.08em;
-  }
-  .mode-btn.gold {
-    border-color: rgba(255,215,0,0.4);
-    background: rgba(255,215,0,0.06);
-  }
-  .mode-btn.gold:hover {
-    background: rgba(255,215,0,0.15);
-    border-color: var(--gold);
-    box-shadow: 0 4px 20px rgba(255,215,0,0.2);
-  }
-  .mode-btn.gold .desc { color: rgba(255,215,0,0.7); }
-
-  /* Legend */
-  .legend {
-    margin-top: 40px;
-    display: flex; gap: 24px;
-    color: var(--muted);
-    font-size: 13px;
-    flex-wrap: wrap; justify-content: center;
-  }
-  .legend .glyph {
-    display: flex; flex-direction: column;
-    align-items: center; gap: 6px;
-  }
-  .legend .glyph svg {
-    width: 36px; height: 36px;
-    filter: drop-shadow(0 0 6px currentColor);
-  }
-  .legend .glyph span {
-    color: var(--text);
-    font-size: 11px;
-    letter-spacing: 0.1em;
-  }
-
-  /* Wave banner */
-  #wave-banner {
-    position: absolute;
-    top: 50%; left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 25;
-    pointer-events: none;
-    text-align: center;
-    opacity: 0;
-    transition: opacity 0.4s ease;
-  }
-  #wave-banner.show { opacity: 1; }
-  #wave-banner .wave-num {
-    font-size: clamp(48px, 10vw, 100px);
-    font-weight: 900;
-    letter-spacing: 0.1em;
-    color: var(--ai);
-    text-shadow: 0 0 40px rgba(255,90,122,0.6);
-  }
-  #wave-banner .wave-sub {
-    font-size: clamp(14px, 2.5vw, 20px);
-    letter-spacing: 0.2em;
-    color: var(--muted);
-    margin-top: 4px;
-  }
-
-  /* Upgrade screen */
-  #upgrade-screen {
-    overflow-y: auto;
-    justify-content: flex-start;
-    padding-top: 40px;
-  }
-  #upgrade-screen h2 {
-    color: var(--gold);
-    text-shadow: 0 0 30px rgba(255,215,0,0.4);
-    margin-bottom: 4px;
-  }
-  #upgrade-screen .gold-display {
-    font-size: 28px;
-    font-weight: 900;
-    color: var(--gold);
-    letter-spacing: 0.1em;
-    margin-bottom: 8px;
-    text-shadow: 0 0 20px rgba(255,215,0,0.5);
-  }
-  #upgrade-screen .wave-info {
-    color: var(--muted);
-    font-size: 13px;
-    letter-spacing: 0.15em;
-    margin-bottom: 30px;
-  }
-  .upgrade-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 14px;
-    width: 100%;
-    max-width: 700px;
-    margin-bottom: 30px;
-  }
-  .upgrade-card {
-    background: rgba(255,255,255,0.04);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 14px;
-    padding: 16px 18px;
-    text-align: left;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    position: relative;
-    overflow: hidden;
-  }
-  .upgrade-card:hover:not(.maxed):not(.locked) {
-    background: rgba(255,215,0,0.08);
-    border-color: rgba(255,215,0,0.4);
-    transform: translateY(-2px);
-  }
-  .upgrade-card.maxed {
-    opacity: 0.5;
-    cursor: default;
-  }
-  .upgrade-card.locked {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
-  .upgrade-card .u-name {
-    font-size: 14px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    color: var(--text);
-    margin-bottom: 4px;
-  }
-  .upgrade-card .u-desc {
-    font-size: 11px;
-    color: var(--muted);
-    letter-spacing: 0.05em;
-    line-height: 1.5;
-    margin-bottom: 10px;
-  }
-  .upgrade-card .u-meta {
-    display: flex; justify-content: space-between; align-items: center;
-  }
-  .upgrade-card .u-cost {
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--gold);
-    letter-spacing: 0.08em;
-  }
-  .upgrade-card .u-level {
-    font-size: 11px;
-    color: var(--muted);
-    letter-spacing: 0.08em;
-  }
-  .upgrade-card .u-bar {
-    height: 3px;
-    background: rgba(255,255,255,0.1);
-    border-radius: 2px;
-    margin-top: 8px;
-    overflow: hidden;
-  }
-  .upgrade-card .u-bar-fill {
-    height: 100%;
-    background: var(--gold);
-    border-radius: 2px;
-    transition: width 0.3s ease;
-  }
-  .continue-btn {
-    padding: 14px 40px;
-    background: rgba(122,255,138,0.15);
-    border: 1px solid rgba(122,255,138,0.5);
-    border-radius: 12px;
-    color: #7aff8a;
-    font-size: 15px;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    margin-top: 10px;
-  }
-  .continue-btn:hover {
-    background: rgba(122,255,138,0.25);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 20px rgba(122,255,138,0.2);
-  }
-
-  /* Game over survival */
-  #gameover-screen .stats-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-    margin: 20px 0 30px;
-    max-width: 400px;
-  }
-  #gameover-screen .stat-box {
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 10px;
-    padding: 14px;
-  }
-  #gameover-screen .stat-box .val {
-    font-size: 28px;
-    font-weight: 900;
-    color: var(--player);
-    letter-spacing: 0.05em;
-  }
-  #gameover-screen .stat-box .lbl {
-    font-size: 10px;
-    color: var(--muted);
-    letter-spacing: 0.15em;
-    margin-top: 2px;
-  }
-</style>
+<link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
 <div id="wrap">
@@ -414,7 +45,21 @@
     <div class="wave-sub" id="wave-sub-text"></div>
   </div>
   <div id="score">SCORE: <span id="score-val">0</span></div>
+  <div id="combo-display" style="position:absolute;bottom:48px;left:50%;transform:translateX(-50%);color:var(--gold);font-size:18px;font-weight:900;letter-spacing:0.12em;text-shadow:0 0 16px var(--gold);pointer-events:none;z-index:10;opacity:0;transition:opacity 0.3s;">COMBO &times;<span id="combo-val">1</span></div>
   <div id="footer">DRAW GLYPHS TO CAST · CIRCLE ALSO BLOCKS INCOMING · R=RESTART</div>
+
+  <div id="visibility-pause-screen" class="screen hidden" aria-hidden="true">
+    <h2>COMBAT PAUSED</h2>
+    <div class="sub">SIGIL STRIKE PAUSED WHILE THIS PAGE WAS AWAY</div>
+    <button class="mode-btn" id="btn-resume-visibility" type="button">RESUME COMBAT</button>
+  </div>
+
+  <div id="survival-recovery-screen" class="screen hidden" aria-hidden="true">
+    <h2>RUN RECOVERED</h2>
+    <div class="sub" id="survival-recovery-summary">A SURVIVAL CHECKPOINT IS READY</div>
+    <button class="mode-btn gold" id="btn-resume-survival" type="button">RESUME RUN</button>
+    <button class="mode-btn" id="btn-discard-survival" type="button">DISCARD CHECKPOINT</button>
+  </div>
 
   <!-- MENU SCREEN -->
   <div id="menu-screen" class="screen">
@@ -427,6 +72,18 @@
     <button class="mode-btn gold" id="btn-survival">
       SURVIVAL MODE
       <span class="desc">Waves of enemies · earn gold · buy upgrades</span>
+    </button>
+    <button class="mode-btn" id="btn-leaderboard">
+      TOP SURVIVORS
+      <span class="desc">View the local top-10 leaderboard</span>
+    </button>
+    <button class="mode-btn teal" id="btn-practice">
+      GLYPH TRAINING
+      <span class="desc">Learn each glyph and practice shielding</span>
+    </button>
+    <button class="mode-btn" id="btn-settings">
+      SETTINGS
+      <span class="desc">Audio and accessibility preferences</span>
     </button>
     <div class="legend">
       <div class="glyph" style="color:var(--fire)">
@@ -444,6 +101,14 @@
       <div class="glyph" style="color:var(--thorns)">
         <svg viewBox="-20 -20 40 40"><rect x="-12" y="-12" width="24" height="24" fill="none" stroke="currentColor" stroke-width="3"/></svg>
         <span>THORNS</span>
+      </div>
+      <div class="glyph" style="color:var(--arcane)">
+        <svg viewBox="-20 -20 40 40"><polygon points="0,-16 15,-6 9,14 -9,14 -15,-6" fill="none" stroke="currentColor" stroke-width="3"/></svg>
+        <span>ARCANE</span>
+      </div>
+      <div class="glyph" style="color:var(--nature)">
+        <svg viewBox="-20 -20 40 40"><path d="M0,-16 C12,-16 16,0 0,16 C-16,0 -12,-16 0,-16Z" fill="none" stroke="currentColor" stroke-width="3"/></svg>
+        <span>NATURE</span>
       </div>
     </div>
     <div class="sub" style="margin-top:24px;font-size:12px;">DRAW SHIELD WHEN OPPONENT ATTACKS</div>
@@ -475,815 +140,66 @@
     <button class="mode-btn" id="btn-menu-from-go">MAIN MENU</button>
   </div>
 
-</div>
-<script>
-(() => {
-  'use strict';
+  <!-- LEADERBOARD SCREEN -->
+  <div id="leaderboard-screen" class="screen hidden">
+    <h2 style="color:var(--gold);">TOP SURVIVORS</h2>
+    <div class="sub" style="margin-bottom:0;">LOCAL TOP 10</div>
+    <div class="leaderboard-panel" id="leaderboard-list"></div>
+    <button class="mode-btn" id="btn-close-leaderboard">BACK</button>
+  </div>
 
-  // === Canvas setup ===
-  const canvas = document.getElementById('game');
-  const ctx = canvas.getContext('2d');
-  let W = 0, H = 0, DPR = 1;
-  function resize() {
-    DPR = Math.min(window.devicePixelRatio || 1, 2);
-    W = window.innerWidth;
-    H = window.innerHeight;
-    canvas.width = W * DPR;
-    canvas.height = H * DPR;
-    canvas.style.width = W + 'px';
-    canvas.style.height = H + 'px';
-    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
-  }
-  window.addEventListener('resize', resize);
-  resize();
-
-  // === Game state ===
-  const STATE = { MENU: 'menu', PLAYING: 'playing', GAME_OVER: 'game_over' };
-  const MODE  = { CLASSIC: 'classic', SURVIVAL: 'survival' };
-
-  // Upgrade definitions
-  const UPGRADES = {
-    maxHp:   { name: 'VITALITY',      desc: '+20 max HP',                   maxLevel: 5, baseCost: 15, icon: '❤' },
-    manaRegen: { name: 'ARCANE FLOW',  desc: '+3 mana per second',           maxLevel: 5, baseCost: 20, icon: '✦' },
-    spellDmg:  { name: 'POWER SURGE',  desc: '+15% spell damage',            maxLevel: 5, baseCost: 25, icon: '⚡' },
-    shieldDur: { name: 'FORTIFY',      desc: '+0.5s shield duration',       maxLevel: 4, baseCost: 18, icon: '◯' },
-    startMana: { name: 'RESERVOIR',    desc: '+15 starting mana',            maxLevel: 4, baseCost: 15, icon: '◈' },
-    armor:     { name: 'ARMOR',        desc: '-10% damage taken',             maxLevel: 4, baseCost: 30, icon: '◈' },
-  };
-
-  function makeUpgrades() {
-    return { maxHp: 0, manaRegen: 0, spellDmg: 0, shieldDur: 0, startMana: 0, armor: 0 };
-  }
-
-  function getUpgradeCost(key, level) {
-    return Math.floor(UPGRADES[key].baseCost * Math.pow(1.6, level));
-  }
-
-  // Computed stats from upgrades
-  function getPlayerStats(ups) {
-    return {
-      hpMax:     100 + ups.maxHp * 20,
-      manaRegen: 6   + ups.manaRegen * 3,
-      spellDmg:  1   + ups.spellDmg * 0.15,
-      shieldDur: 1.5 + ups.shieldDur * 0.5,
-      startMana: 50  + ups.startMana * 15,
-      armor:     ups.armor * 0.10,
-    };
-  }
-
-  let game = null;
-
-  function createGame(mode) {
-    return {
-      mode,
-      state: STATE.MENU,
-      player: { hp: 100, hpMax: 100, mana: 50, manaMax: 100, x: 0, y: 0, shieldTimer: 0, hitFlash: 0 },
-      ai:     { hp: 100, hpMax: 100, x: 0, y: 0, castTimer: 0, castInterval: 2.5, casting: null, hitFlash: 0, shake: 0 },
-      projectiles: [],
-      particles: [],
-      drawing: false,
-      drawPath: [],
-      drawStart: 0,
-      score: 0,
-      timeAlive: 0,
-      lastCastTime: 0,
-      arenaFlash: 0,
-      bgStars: [],
-      // Survival-specific
-      wave: 0,
-      lives: 3,
-      gold: 0,
-      upgrades: makeUpgrades(),
-      waveEnemyHp: 100,
-      waveEnemiesDefeated: 0,
-      waveStartTime: 0,
-    };
-  }
-
-  // === Element definitions ===
-  const ELEMENTS = {
-    fire:      { name: 'FIRE',      color: '#ff7a3a', glyph: 'circle',    damage: 12, cost: 10, speed: 700,  trait: 'crit' },
-    frost:     { name: 'FROST',     color: '#6ad8ff', glyph: 'triangle',  damage: 14, cost: 12, speed: 500,  trait: 'slow' },
-    lightning: { name: 'LIGHTNING', color: '#ffe14a', glyph: 'zigzag',    damage: 10, cost: 14, speed: 1100, trait: 'pierce' },
-    thorns:    { name: 'THORNS',    color: '#7aff8a', glyph: 'square',    damage: 8,  cost: 8,  speed: 800,  trait: 'reflect' },
-  };
-  const ADV = { fire: 'frost', frost: 'lightning', lightning: 'thorns', thorns: 'fire' };
-  const SHAPE_TO_ELEMENT = {
-    circle:   'fire',
-    triangle: 'frost',
-    zigzag:   'lightning',
-    square:   'thorns',
-  };
-
-  // === Background stars ===
-  game = createGame(MODE.CLASSIC);
-  for (let i = 0; i < 60; i++) {
-    game.bgStars.push({ x: Math.random(), y: Math.random(), r: Math.random() * 1.2 + 0.3, tw: Math.random() * Math.PI * 2 });
-  }
-
-  // === Arena positions ===
-  function placeArena() {
-    if (!game) return;
-    game.player.x = W * 0.22;
-    game.player.y = H * 0.5;
-    game.ai.x     = W * 0.78;
-    game.ai.y     = H * 0.5;
-  }
-  placeArena();
-  window.addEventListener('resize', placeArena);
-
-  // === Glyph recognition ===
-  function simplifyPath(points, tolerance = 12) {
-    if (points.length < 3) return points;
-    const out = [points[0]];
-    for (let i = 1; i < points.length - 1; i++) {
-      const last = out[out.length - 1];
-      if (Math.hypot(points[i].x - last.x, points[i].y - last.y) >= tolerance) out.push(points[i]);
-    }
-    const tail = points[points.length - 1];
-    if (Math.hypot(tail.x - out[out.length - 1].x, tail.y - out[out.length - 1].y) >= tolerance) out.push(tail);
-    return out;
-  }
-
-  function classifyGlyph(rawPoints) {
-    const points = simplifyPath(rawPoints, 12);
-    if (!points || points.length < 4) return null;
-    let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-    for (const p of points) { minX = Math.min(minX, p.x); maxX = Math.max(maxX, p.x); minY = Math.min(minY, p.y); maxY = Math.max(maxY, p.y); }
-    const w = maxX - minX, h = maxY - minY;
-    const diag = Math.hypot(w, h);
-    if (diag < 30) return null;
-    let pathLen = 0;
-    for (let i = 1; i < points.length; i++) pathLen += Math.hypot(points[i].x - points[i-1].x, points[i].y - points[i-1].y);
-    if (pathLen < 60) return null;
-    const start = points[0], end = points[points.length - 1];
-    const closed = Math.hypot(end.x - start.x, end.y - start.y) < diag * 0.45;
-    const aspect = w / Math.max(h, 1);
-    const dirs = [];
-    for (let i = 2; i < points.length; i++) {
-      const v1x = points[i-1].x - points[i-2].x, v1y = points[i-1].y - points[i-2].y;
-      const v2x = points[i].x - points[i-1].x,   v2y = points[i].y - points[i-1].y;
-      let diff = Math.atan2(v2y, v2x) - Math.atan2(v1y, v1x);
-      while (diff > Math.PI) diff -= 2 * Math.PI; while (diff < -Math.PI) diff += 2 * Math.PI;
-      dirs.push(diff);
-    }
-    let sideChanges = 0, prevSide = 0;
-    for (const d of dirs) { const s = Math.sign(d); if (s !== 0 && prevSide !== 0 && s !== prevSide) sideChanges++; if (s !== 0) prevSide = s; }
-    let corners = 0; for (const d of dirs) if (Math.abs(d) > 0.8) corners++;
-    const straightness = pathLen / Math.max(diag, 1);
-    const scores = {
-      circle:   closed * Math.max(0, 1 - corners / 5) * Math.max(0, 1 - Math.abs(aspect - 1) * 0.4) * Math.min(1, straightness / 2.0),
-      triangle: closed * (corners >= 2 && corners <= 4 ? 1 : 0.3) * Math.max(0, 1 - Math.abs(aspect - 1) * 0.5) * Math.max(0, 1 - (straightness - 2.0) * 0.3),
-      square:   closed * (corners >= 3 && corners <= 5 ? 1 : 0.3) * Math.max(0, 1 - Math.abs(aspect - 1) * 0.5) * Math.max(0, 1 - (straightness - 2.5) * 0.3),
-      zigzag:   (closed ? 0.15 : 0.85) * (sideChanges >= 3 ? 1 : 0.4) * Math.max(0.3, 1 - Math.max(0, straightness - 5) * 0.1),
-    };
-    let best = null, bestScore = 0.30;
-    for (const k in scores) { if (scores[k] > bestScore) { bestScore = scores[k]; best = k; } }
-    return best;
-  }
-
-  // === Audio ===
-  let audioCtx = null;
-  function initAudio() {
-    if (!audioCtx) audioCtx = new AudioContext();
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-  }
-  function playSound(type) {
-    if (!audioCtx) return;
-    const t = audioCtx.currentTime;
-    const osc = audioCtx.createOscillator();
-    const gain = audioCtx.createGain();
-    osc.connect(gain); gain.connect(audioCtx.destination);
-    if (type === 'cast') {
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(600, t);
-      osc.frequency.exponentialRampToValueAtTime(1200, t + 0.15);
-      gain.gain.setValueAtTime(0.15, t);
-      gain.gain.exponentialRampToValueAtTime(0.01, t + 0.15);
-      osc.start(t); osc.stop(t + 0.15);
-    } else if (type === 'hit') {
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(150, t);
-      osc.frequency.exponentialRampToValueAtTime(40, t + 0.2);
-      gain.gain.setValueAtTime(0.2, t);
-      gain.gain.exponentialRampToValueAtTime(0.01, t + 0.2);
-      osc.start(t); osc.stop(t + 0.2);
-    } else if (type === 'shield') {
-      osc.type = 'square';
-      osc.frequency.setValueAtTime(400, t);
-      osc.frequency.linearRampToValueAtTime(800, t + 0.2);
-      gain.gain.setValueAtTime(0.1, t);
-      gain.gain.linearRampToValueAtTime(0.01, t + 0.2);
-      osc.start(t); osc.stop(t + 0.2);
-    } else if (type === 'waveclear') {
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(400, t);
-      osc.frequency.setValueAtTime(600, t + 0.1);
-      osc.frequency.setValueAtTime(800, t + 0.2);
-      gain.gain.setValueAtTime(0.2, t);
-      gain.gain.exponentialRampToValueAtTime(0.01, t + 0.4);
-      osc.start(t); osc.stop(t + 0.4);
-    }
-  }
-
-  // === Particles ===
-  function burst(x, y, color, count = 20, speed = 200) {
-    for (let i = 0; i < count; i++) {
-      const a = Math.random() * Math.PI * 2, s = speed * (0.4 + Math.random() * 0.6);
-      game.particles.push({ x, y, vx: Math.cos(a) * s, vy: Math.sin(a) * s, life: 0.6 + Math.random() * 0.4, maxLife: 1.0, color, size: 2 + Math.random() * 3 });
-    }
-  }
-
-  function showToast(text, color = '#fff', duration = 1200) {
-    const t = document.getElementById('toast');
-    t.textContent = text; t.style.color = color; t.classList.add('show');
-    clearTimeout(showToast._t);
-    showToast._t = setTimeout(() => t.classList.remove('show'), duration);
-  }
-
-  // === Projectiles ===
-  function spawnProjectile(fromX, fromY, toX, toY, element, fromAI = false, speed = 600) {
-    const dx = toX - fromX, dy = toY - fromY;
-    const dist = Math.hypot(dx, dy);
-    game.projectiles.push({ x: fromX, y: fromY, vx: (dx/dist)*speed, vy: (dy/dist)*speed, element, color: ELEMENTS[element].color, fromAI, life: 3.0, size: 8 + Math.random()*4, trail: [] });
-  }
-
-  // === Get wave AI parameters ===
-  function getWaveParams(wave) {
-    const baseHp     = 100 + (wave - 1) * 25;
-    const baseInterval = Math.max(1.0, 2.5 - (wave - 1) * 0.15);
-    const aiSpeed    = 0.85 + (wave - 1) * 0.04;
-    const enemiesToDefeat = Math.min(1 + Math.floor((wave - 1) / 2), 5);
-    return { baseHp, baseInterval, aiSpeed, enemiesToDefeat };
-  }
-
-  // === Game start/restart ===
-  function startGame(mode) {
-    game.state = STATE.PLAYING;
-    game.mode   = mode;
-
-    const stats = getPlayerStats(game.upgrades);
-    game.player.hpMax = stats.hpMax;
-    game.player.manaMax = 100;
-    game.player.hp   = stats.hpMax;
-    game.player.mana = stats.startMana;
-    game.player.shieldTimer = 0;
-    game.player.hitFlash = 0;
-    game.ai.hp = mode === MODE.SURVIVAL ? getWaveParams(game.wave || 1).baseHp : 100;
-    game.ai.hpMax = game.ai.hp;
-    game.ai.castTimer = mode === MODE.SURVIVAL ? 2.0 : 2.0;
-    game.ai.castInterval = mode === MODE.SURVIVAL ? getWaveParams(game.wave || 1).baseInterval : 2.5;
-    game.ai.casting = null;
-    game.ai.hitFlash = 0;
-    game.ai.shake = 0;
-    game.projectiles = [];
-    game.particles = [];
-    game.score = 0;
-    game.timeAlive = 0;
-    game.arenaFlash = 0;
-    game.lastCastTime = 0;
-    if (mode === MODE.SURVIVAL) {
-      game.waveStartTime = performance.now();
-    }
-    document.getElementById('menu-screen').classList.add('hidden');
-    document.getElementById('upgrade-screen').classList.add('hidden');
-    document.getElementById('waveclear-screen').classList.add('hidden');
-    document.getElementById('gameover-screen').classList.add('hidden');
-    document.getElementById('wave-display').style.opacity = mode === MODE.SURVIVAL ? '1' : '0';
-    document.getElementById('score').style.display = 'block';
-
-    if (mode === MODE.SURVIVAL && game.wave === 0) {
-      game.wave = 1;
-      game.lives = 3;
-      game.gold  = 0;
-      game.upgrades = makeUpgrades();
-      showWaveBanner(game.wave);
-    }
-    updateHUD();
-  }
-
-  function startWave(waveNum) {
-    game.wave = waveNum;
-    const { baseHp, baseInterval, aiSpeed } = getWaveParams(waveNum);
-    game.ai.hp = baseHp;
-    game.ai.hpMax = baseHp;
-    game.ai.castInterval = baseInterval;
-    game.ai.castTimer = 2.0;
-    game.ai.casting = null;
-    game.ai.hitFlash = 0;
-    game.ai.shake = 0;
-    game.projectiles = [];
-    game.particles = [];
-    game.waveStartTime = performance.now();
-    game.waveEnemiesDefeated = 0;
-    showWaveBanner(waveNum);
-    updateHUD();
-  }
-
-  function showWaveBanner(wave) {
-    const b = document.getElementById('wave-banner');
-    document.getElementById('wave-num-text').textContent = `WAVE ${wave}`;
-    document.getElementById('wave-sub-text').textContent = getWaveParams(wave).enemiesToDefeat > 1
-      ? `${getWaveParams(wave).enemiesToDefeat} OPPONENTS`
-      : 'SURVIVE THE ONSLAUGHT';
-    b.classList.add('show');
-    setTimeout(() => b.classList.remove('show'), 2000);
-  }
-
-  // === Player cast ===
-  function playerCast(elementKey) {
-    const el = ELEMENTS[elementKey];
-    const stats = getPlayerStats(game.upgrades);
-    if (game.player.mana < el.cost) { showToast('NO MANA', '#888', 600); return; }
-    game.player.mana -= el.cost;
-    const targetX = game.ai.x + (Math.random() - 0.5) * 60;
-    const targetY = game.ai.y + (Math.random() - 0.5) * 80;
-    spawnProjectile(game.player.x, game.player.y, targetX, targetY, elementKey, false, el.speed);
-    burst(game.player.x, game.player.y, el.color, 12, 150);
-    game.lastCastTime = performance.now();
-    playSound('cast');
-  }
-
-  // === AI cast ===
-  function aiCast() {
-    const keys = Object.keys(ELEMENTS);
-    const elementKey = keys[Math.floor(Math.random() * keys.length)];
-    const el = ELEMENTS[elementKey];
-    const targetX = game.player.x + (Math.random() - 0.5) * 40;
-    const targetY = game.player.y + (Math.random() - 0.5) * 60;
-    const { aiSpeed } = getWaveParams(game.wave);
-    spawnProjectile(game.ai.x, game.ai.y, targetX, targetY, elementKey, true, el.speed * aiSpeed);
-    game.ai.casting = { element: elementKey, color: el.color, warning: 0.7 };
-    burst(game.ai.x, game.ai.y, el.color, 8, 100);
-    playSound('cast');
-  }
-
-  // === Hit resolution ===
-  function onPlayerHit(proj) {
-    const stats = getPlayerStats(game.upgrades);
-    const el = ELEMENTS[proj.element];
-    let dmg = el.damage;
-    if (proj.element === 'lightning' && game.player.shieldTimer > 0) dmg = Math.round(dmg * 0.7);
-    dmg = Math.round(dmg * (1 - stats.armor));
-    game.player.hp -= dmg;
-    game.player.hitFlash = 0.3;
-    game.ai.hitFlash = 0.15;
-    burst(game.player.x, game.player.y, el.color, 18, 220);
-    burst(game.player.x, game.player.y, '#ff4a6a', 8, 300);
-    showToast(`-${dmg}`, proj.color, 600);
-    playSound('hit');
-    if (game.player.hp <= 0) {
-      game.player.hp = 0;
-      if (game.mode === MODE.SURVIVAL) {
-        game.lives--;
-        if (game.lives <= 0) endGame(false);
-        else {
-          // Brief pause then respawn
-          const stats2 = getPlayerStats(game.upgrades);
-          game.player.hp = stats2.hpMax;
-          game.player.mana = stats2.startMana;
-          game.projectiles = [];
-          showToast(`LIVES: ${game.lives}`, '#ff4a6a', 1000);
-        }
-      } else {
-        endGame(false);
-      }
-    }
-  }
-
-  function onAIHit(proj) {
-    const stats = getPlayerStats(game.upgrades);
-    const el = ELEMENTS[proj.element];
-    let dmg = Math.round(el.damage * stats.spellDmg);
-    if (ADV[proj.element] === game.aiLastElement) dmg += 5;
-    if (Math.random() < 0.15 && proj.element === 'fire') dmg = Math.round(dmg * 1.5);
-    game.ai.hp -= dmg;
-    game.ai.hitFlash = 0.4;
-    game.player.hitFlash = 0.1;
-    burst(proj.x, proj.y, el.color, 22, 240);
-    burst(proj.x, proj.y, '#fff', 6, 350);
-    showToast(`-${dmg}`, proj.color, 600);
-    playSound('hit');
-    game.score += Math.round(dmg * 10);
-
-    if (game.ai.hp <= 0) {
-      game.ai.hp = 0;
-      if (game.mode === MODE.SURVIVAL) {
-        game.waveEnemiesDefeated++;
-        const { enemiesToDefeat } = getWaveParams(game.wave);
-        const waveTime = (performance.now() - game.waveStartTime) / 1000;
-        if (game.waveEnemiesDefeated >= enemiesToDefeat) {
-          // Wave clear
-          const goldEarned = 10 + game.wave * 5;
-          game.gold += goldEarned;
-          playSound('waveclear');
-          showWaveClearScreen(game.wave, goldEarned, waveTime);
-        } else {
-          // Spawn next enemy in wave
-          const { baseHp, baseInterval } = getWaveParams(game.wave);
-          setTimeout(() => {
-            if (game.state !== STATE.PLAYING) return;
-            game.ai.hp = baseHp;
-            game.ai.hpMax = baseHp;
-            game.ai.castInterval = baseInterval;
-            game.ai.castTimer = 1.5;
-            game.ai.casting = null;
-            game.ai.hitFlash = 0;
-            game.projectiles = [];
-            showToast(`OPPONENT ${game.waveEnemiesDefeated + 1}/${enemiesToDefeat}`, '#ff5a7a', 1000);
-            updateHUD();
-          }, 1200);
-        }
-      } else {
-        endGame(true);
-      }
-    }
-  }
-
-  function endGame(won) {
-    game.state = STATE.GAME_OVER;
-    if (game.mode === MODE.SURVIVAL) {
-      showSurvivalGameOver(won);
-    } else {
-      showClassicGameOver(won);
-    }
-  }
-
-  function showClassicGameOver(won) {
-    const go = document.getElementById('gameover-screen');
-    document.getElementById('go-title').textContent = won ? 'VICTORY' : 'DEFEAT';
-    document.getElementById('go-title').style.color = won ? '#7aff8a' : 'var(--ai)';
-    document.getElementById('go-stats').innerHTML = `
-      <div class="stat-box"><div class="val">${game.score}</div><div class="lbl">SCORE</div></div>
-      <div class="stat-box"><div class="val">${game.timeAlive.toFixed(1)}s</div><div class="lbl">TIME</div></div>
-    `;
-    go.classList.remove('hidden');
-    document.getElementById('btn-retry-survival').style.display = 'none';
-    document.getElementById('btn-menu-from-go').onclick = () => { go.classList.add('hidden'); document.getElementById('menu-screen').classList.remove('hidden'); };
-  }
-
-  function showSurvivalGameOver(won) {
-    const go = document.getElementById('gameover-screen');
-    document.getElementById('go-title').textContent = 'DEFEAT';
-    document.getElementById('go-title').style.color = 'var(--ai)';
-    document.getElementById('go-stats').innerHTML = `
-      <div class="stat-box"><div class="val">${game.wave}</div><div class="lbl">WAVES SURVIVED</div></div>
-      <div class="stat-box"><div class="val">${game.score}</div><div class="lbl">SCORE</div></div>
-      <div class="stat-box"><div class="val">◆ ${game.gold}</div><div class="lbl">GOLD EARNED</div></div>
-      <div class="stat-box"><div class="val">${game.timeAlive.toFixed(1)}s</div><div class="lbl">TIME ALIVE</div></div>
-    `;
-    go.classList.remove('hidden');
-    document.getElementById('btn-retry-survival').style.display = 'block';
-    document.getElementById('btn-retry-survival').onclick = () => { go.classList.add('hidden'); game.wave = 0; startGame(MODE.SURVIVAL); };
-    document.getElementById('btn-menu-from-go').onclick = () => { go.classList.add('hidden'); document.getElementById('menu-screen').classList.remove('hidden'); };
-  }
-
-  function showWaveClearScreen(wave, goldEarned, waveTime) {
-    const wc = document.getElementById('waveclear-screen');
-    document.getElementById('wc-wave').textContent = wave;
-    document.getElementById('wc-gold-earned').textContent = `+${goldEarned} GOLD`;
-    document.getElementById('wc-time').textContent = `Time: ${waveTime.toFixed(1)}s`;
-    wc.classList.remove('hidden');
-  }
-
-  // === Upgrade screen ===
-  function showUpgradeScreen() {
-    const us = document.getElementById('upgrade-screen');
-    document.getElementById('upgrade-gold').textContent = `◆ ${game.gold}`;
-    document.getElementById('upgrade-wave-info').textContent = `WAVE ${game.wave} COMPLETE`;
-    renderUpgradeGrid();
-    us.classList.remove('hidden');
-  }
-
-  function renderUpgradeGrid() {
-    const grid = document.getElementById('upgrade-grid');
-    grid.innerHTML = '';
-    const stats = getPlayerStats(game.upgrades);
-    for (const [key, def] of Object.entries(UPGRADES)) {
-      const level = game.upgrades[key];
-      const cost = getUpgradeCost(key, level);
-      const maxed = level >= def.maxLevel;
-      const canAfford = game.gold >= cost;
-      const locked = false;
-      const card = document.createElement('div');
-      card.className = 'upgrade-card' + (maxed ? ' maxed' : (!canAfford && !locked ? ' locked' : ''));
-      // Level bar
-      let barPct = (level / def.maxLevel) * 100;
-      let currentVal = '';
-      if (key === 'maxHp')    currentVal = `${stats.hpMax} HP`;
-      if (key === 'manaRegen') currentVal = `${stats.manaRegen.toFixed(1)}/s`;
-      if (key === 'spellDmg') currentVal = `+${Math.round((stats.spellDmg-1)*100)}%`;
-      if (key === 'shieldDur')currentVal = `${stats.shieldDur.toFixed(1)}s`;
-      if (key === 'startMana')currentVal = `${stats.startMana} mana`;
-      if (key === 'armor')    currentVal = `-${Math.round(stats.armor*100)}%`;
-      card.innerHTML = `
-        <div class="u-name">${def.icon} ${def.name}</div>
-        <div class="u-desc">${def.desc} — currently ${currentVal}</div>
-        <div class="u-meta">
-          <span class="u-cost">${maxed ? 'MAXED' : `◆ ${cost}`}</span>
-          <span class="u-level">LV ${level}/${def.maxLevel}</span>
+  <!-- PRACTICE SCREEN -->
+  <div id="practice-screen" class="screen hidden">
+    <h2 id="practice-title">GLYPH TRAINING</h2>
+    <div class="practice-progress" id="practice-progress"></div>
+    <div class="practice-hint" id="practice-hint"></div>
+    <div class="practice-status" id="practice-status"></div>
+    <div id="practice-ai-bar" style="display:none;position:absolute;top:60px;left:50%;transform:translateX(-50%);width:220px;">
+      <div style="color:var(--ai);font-size:11px;font-weight:700;letter-spacing:0.15em;margin-bottom:4px;text-align:center;">OPPONENT</div>
+      <div style="height:12px;background:rgba(255,255,255,0.08);border-radius:6px;overflow:hidden;">
+        <div id="practice-ai-hp-bar" style="height:100%;background:linear-gradient(90deg,#ff4a6a,#7aff8a);width:100%;transition:width 0.2s;"></div>
+      </div>
+    </div>
+    <div id="practice-player-bar" style="display:none;position:absolute;bottom:80px;left:50%;transform:translateX(-50%);width:220px;">
+      <div style="color:var(--player);font-size:11px;font-weight:700;letter-spacing:0.15em;margin-bottom:4px;text-align:center;">YOU</div>
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <div style="height:12px;background:rgba(255,255,255,0.08);border-radius:6px;overflow:hidden;">
+          <div id="practice-player-hp-bar" style="height:100%;background:linear-gradient(90deg,#ff4a6a,#7aff8a);width:100%;transition:width 0.2s;"></div>
         </div>
-        <div class="u-bar"><div class="u-bar-fill" style="width:${barPct}%"></div></div>
-      `;
-      if (!maxed && canAfford) {
-        card.onclick = () => purchaseUpgrade(key, cost);
-      }
-      grid.appendChild(card);
-    }
-  }
+        <div style="height:7px;background:rgba(255,255,255,0.08);border-radius:4px;overflow:hidden;">
+          <div id="practice-player-mp-bar" style="height:100%;background:linear-gradient(90deg,#4a8aff,#5fd4ff);width:100%;transition:width 0.1s;"></div>
+        </div>
+      </div>
+    </div>
+    <button class="mode-btn" id="btn-exit-practice">EXIT</button>
+  </div>
 
-  function purchaseUpgrade(key, cost) {
-    game.gold -= cost;
-    game.upgrades[key]++;
-    renderUpgradeGrid();
-    document.getElementById('upgrade-gold').textContent = `◆ ${game.gold}`;
-    // Update player stats immediately for next wave
-    const stats = getPlayerStats(game.upgrades);
-    game.player.hpMax = stats.hpMax;
-    game.player.manaMax = 100;
-  }
+  <!-- SETTINGS SCREEN -->
+  <div id="settings-screen" class="screen hidden">
+    <h2>SETTINGS</h2>
+    <div class="sub" style="margin-bottom:0;">SAVED ON THIS DEVICE</div>
+    <div class="settings-panel">
+      <div class="setting-row">
+        <div class="setting-copy"><strong>AUDIO</strong><span>Enable spell and combat sounds</span></div>
+        <button class="setting-toggle" id="setting-audio" type="button" aria-pressed="true">ON</button>
+      </div>
+      <label class="setting-row" for="setting-volume">
+        <span class="setting-copy"><strong>VOLUME</strong><span>Set sound effect volume</span></span>
+        <span class="volume-control"><input id="setting-volume" type="range" min="0" max="100" step="5" value="60" aria-label="Sound effect volume"><span id="setting-volume-value">60%</span></span>
+      </label>
+      <div class="setting-row">
+        <div class="setting-copy"><strong>REDUCED MOTION</strong><span>Disable particles, shake, flashes, and animated transitions</span></div>
+        <button class="setting-toggle" id="setting-motion" type="button" aria-pressed="false">OFF</button>
+      </div>
+      <div class="setting-row">
+        <div class="setting-copy"><strong>HIGH CONTRAST</strong><span>Strengthen colors, borders, and text readability</span></div>
+        <button class="setting-toggle" id="setting-contrast" type="button" aria-pressed="false">OFF</button>
+      </div>
+    </div>
+    <button class="mode-btn" id="btn-close-settings">BACK</button>
+  </div>
 
-  // === Input ===
-  let activePointerId = null;
-  function onDown(e) {
-    e.preventDefault();
-    if (activePointerId !== null) return;
-    activePointerId = e.pointerId;
-    try { canvas.setPointerCapture(e.pointerId); } catch(err) {}
-    initAudio();
-    if (game.state === STATE.MENU) return;
-    if (game.state !== STATE.PLAYING) return;
-    game.drawing = true;
-    game.drawPath = [{ x: e.clientX, y: e.clientY }];
-    game.drawStart = performance.now();
-  }
-  function onMove(e) {
-    e.preventDefault();
-    if (!game.drawing || e.pointerId !== activePointerId) return;
-    const p = { x: e.clientX, y: e.clientY };
-    const last = game.drawPath[game.drawPath.length - 1];
-    if (Math.hypot(p.x - last.x, p.y - last.y) > 3) {
-      game.drawPath.push(p);
-      if (game.drawPath.length > 80) game.drawPath.shift();
-    }
-  }
-  function onUp(e) {
-    e.preventDefault();
-    if (!game.drawing || e.pointerId !== activePointerId) return;
-    activePointerId = null;
-    try { canvas.releasePointerCapture(e.pointerId); } catch(err) {}
-    game.drawing = false;
-    const path = game.drawPath;
-    game.drawPath = [];
-    if (path.length < 4) return;
-    const glyph = classifyGlyph(path);
-    if (!glyph) {
-      showToast('UNKNOWN GLYPH', '#888', 500);
-      burst((path[0].x+path[path.length-1].x)/2, (path[0].y+path[path.length-1].y)/2, '#888', 8, 80);
-      return;
-    }
-    // Shield: only circle is a shield glyph. Other closed shapes always cast their element.
-    const isShield = glyph === 'circle';
-    if (isShield && game.ai.casting && game.ai.casting.warning > 0) {
-      const stats = getPlayerStats(game.upgrades);
-      game.player.shieldTimer = stats.shieldDur;
-      game.ai.casting.warning = 0;
-      burst(game.player.x, game.player.y, '#fff', 24, 200);
-      showToast('SHIELDED', '#fff', 500);
-      playSound('shield');
-      return;
-    }
-    const element = SHAPE_TO_ELEMENT[glyph];
-    if (!element) { showToast('UNKNOWN GLYPH', '#888', 500); return; }
-    playerCast(element);
-  }
-
-  canvas.addEventListener('pointerdown', onDown);
-  canvas.addEventListener('pointermove', onMove);
-  canvas.addEventListener('pointerup', onUp);
-  canvas.addEventListener('pointercancel', onUp);
-  canvas.addEventListener('contextmenu', e => e.preventDefault());
-
-  window.addEventListener('keydown', e => {
-    if (e.key === 'r' || e.key === 'R') {
-      if (game.state !== STATE.MENU) {
-        if (game.mode === MODE.SURVIVAL && game.state === STATE.PLAYING) startWave(game.wave);
-        else startGame(game.mode);
-      }
-    }
-  });
-
-  // === Menu buttons ===
-  document.getElementById('btn-classic').onclick = () => { game.mode = MODE.CLASSIC; game.wave = 0; startGame(MODE.CLASSIC); };
-  document.getElementById('btn-survival').onclick = () => { game.mode = MODE.SURVIVAL; game.wave = 0; startGame(MODE.SURVIVAL); };
-  document.getElementById('btn-continue').onclick = () => {
-    document.getElementById('upgrade-screen').classList.add('hidden');
-    game.state = STATE.PLAYING;
-    startWave(game.wave);
-  };
-  document.getElementById('btn-to-upgrades').onclick = () => {
-    document.getElementById('waveclear-screen').classList.add('hidden');
-    showUpgradeScreen();
-  };
-  document.getElementById('btn-next-wave').onclick = () => {
-    document.getElementById('waveclear-screen').classList.add('hidden');
-    game.wave++;
-    startWave(game.wave);
-    game.state = STATE.PLAYING;
-  };
-
-  // === Update ===
-  let lastT = performance.now();
-  function update(now) {
-    const dt = Math.min((now - lastT) / 1000, 0.05);
-    lastT = now;
-
-    if (game.state === STATE.PLAYING) {
-      game.timeAlive += dt;
-      const stats = getPlayerStats(game.upgrades);
-      game.player.mana = Math.min(100, game.player.mana + stats.manaRegen * dt);
-      game.player.shieldTimer = Math.max(0, game.player.shieldTimer - dt);
-      game.player.hitFlash = Math.max(0, game.player.hitFlash - dt * 2);
-      game.ai.hitFlash = Math.max(0, game.ai.hitFlash - dt * 2);
-      game.ai.shake = Math.max(0, game.ai.shake - dt);
-      game.arenaFlash = Math.max(0, game.arenaFlash - dt * 2);
-
-      // AI cast
-      game.ai.castTimer -= dt;
-      if (game.ai.castTimer <= 0 && !game.ai.casting) {
-        aiCast();
-        game.ai.castTimer = Math.max(1.0, game.ai.castInterval - game.timeAlive * 0.01);
-      }
-      if (game.ai.casting) {
-        game.ai.casting.warning -= dt;
-        if (game.ai.casting.warning <= 0) {
-          game.ai.casting = null;
-          game.ai.castTimer = Math.max(1.0, game.ai.castInterval);
-        }
-      }
-
-      // Projectiles
-      for (let i = game.projectiles.length - 1; i >= 0; i--) {
-        const p = game.projectiles[i];
-        p.life -= dt;
-        p.trail.push({ x: p.x, y: p.y, life: 0.3 });
-        if (p.trail.length > 12) p.trail.shift();
-        for (const t of p.trail) t.life -= dt;
-        p.x += p.vx * dt; p.y += p.vy * dt;
-        const targetX = p.fromAI ? game.player.x : game.ai.x;
-        const targetY = p.fromAI ? game.player.y : game.ai.y;
-        if (Math.hypot(p.x - targetX, p.y - targetY) < 28) {
-          if (p.fromAI) onPlayerHit(p);
-          else onAIHit(p);
-          game.projectiles.splice(i, 1);
-          continue;
-        }
-        if (p.life <= 0 || p.x < -50 || p.x > W+50 || p.y < -50 || p.y > H+50) {
-          game.projectiles.splice(i, 1);
-        }
-      }
-      for (const p of game.projectiles) {
-        if (p.fromAI && p.life > 2.5) game.aiLastElement = p.element;
-      }
-    }
-
-    // Particles always update
-    for (let i = game.particles.length - 1; i >= 0; i--) {
-      const p = game.particles[i];
-      p.life -= dt;
-      p.x += p.vx * dt; p.y += p.vy * dt;
-      p.vx *= 0.96; p.vy *= 0.96;
-      if (p.life <= 0) game.particles.splice(i, 1);
-    }
-
-    updateHUD();
-  }
-
-  function updateHUD() {
-    if (!game) return;
-    const stats = getPlayerStats(game.upgrades);
-    const hpPct = Math.max(0, game.player.hp / (stats.hpMax > 0 ? stats.hpMax : 100)) * 100;
-    const mpPct = Math.max(0, game.player.mana / 100) * 100;
-    const aiHpPct = game.ai.hpMax > 0 ? Math.max(0, game.ai.hp / game.ai.hpMax) * 100 : 0;
-    document.getElementById('player-hp').style.width = hpPct + '%';
-    document.getElementById('player-mp').style.width = mpPct + '%';
-    document.getElementById('ai-hp').style.width = aiHpPct + '%';
-    document.getElementById('score-val').textContent = game.score;
-    if (game.mode === MODE.SURVIVAL) {
-      document.getElementById('wave-display').textContent =
-        `WAVE ${game.wave}  ·  LIVES ${'♥'.repeat(Math.max(0,game.lives))}  ·  ◆ ${game.gold}`;
-    }
-  }
-
-  // === Render ===
-  function render() {
-    const grad = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, Math.max(W, H));
-    grad.addColorStop(0, '#1a0a3a'); grad.addColorStop(1, '#07041a');
-    ctx.fillStyle = grad; ctx.fillRect(0, 0, W, H);
-
-    const t = performance.now() / 1000;
-    for (const s of game.bgStars) {
-      const alpha = 0.4 + 0.3 * Math.sin(t + s.tw);
-      ctx.fillStyle = `rgba(180,180,255,${alpha})`;
-      ctx.beginPath(); ctx.arc(s.x * W, s.y * H, s.r * DPR, 0, Math.PI * 2); ctx.fill();
-    }
-
-    ctx.strokeStyle = 'rgba(95,212,255,0.15)'; ctx.lineWidth = 1 * DPR;
-    ctx.beginPath(); ctx.moveTo(W*0.1, H*0.5); ctx.lineTo(W*0.9, H*0.5); ctx.stroke();
-
-    if (game.state === STATE.MENU) return;
-
-    if (game.arenaFlash > 0) {
-      ctx.fillStyle = `rgba(255,255,255,${game.arenaFlash * 0.05})`;
-      ctx.fillRect(0, 0, W, H);
-    }
-
-    drawWizard(game.player.x, game.player.y, '#5fd4ff', game.player.hitFlash, game.player.shieldTimer > 0);
-    const aiShakeX = (Math.random()-0.5) * game.ai.shake * 8;
-    const aiShakeY = (Math.random()-0.5) * game.ai.shake * 8;
-    drawWizard(game.ai.x + aiShakeX, game.ai.y + aiShakeY, '#ff5a7a', game.ai.hitFlash);
-
-    // AI casting warning
-    if (game.ai.casting) {
-      const c = game.ai.casting;
-      const intensity = 1 - c.warning / 0.7;
-      ctx.strokeStyle = c.color; ctx.globalAlpha = 0.4 + intensity * 0.5;
-      ctx.lineWidth = 3 * DPR;
-      ctx.beginPath(); ctx.arc(game.ai.x, game.ai.y, 32 + intensity * 10, 0, Math.PI * 2); ctx.stroke();
-      ctx.globalAlpha = 1;
-      ctx.strokeStyle = c.color; ctx.globalAlpha = intensity * 0.3;
-      ctx.lineWidth = 2 * DPR;
-      ctx.beginPath(); ctx.moveTo(game.ai.x, game.ai.y); ctx.lineTo(game.player.x, game.player.y); ctx.stroke();
-      ctx.globalAlpha = 1;
-      ctx.fillStyle = c.color;
-      ctx.font = `bold ${14 * DPR}px sans-serif`; ctx.textAlign = 'center';
-      ctx.fillText(`INCOMING: ${ELEMENTS[c.element].name}`, W/2, H * 0.25);
-    }
-
-    // Projectiles
-    ctx.globalCompositeOperation = 'screen';
-    for (const p of game.projectiles) {
-      for (let i = 0; i < p.trail.length; i++) {
-        const t2 = p.trail[i];
-        if (t2.life <= 0) continue;
-        ctx.fillStyle = p.color; ctx.globalAlpha = t2.life / 0.3 * 0.5;
-        ctx.beginPath(); ctx.arc(t2.x, t2.y, p.size * 0.6, 0, Math.PI * 2); ctx.fill();
-      }
-      ctx.globalAlpha = 1;
-      ctx.fillStyle = p.color; ctx.shadowColor = p.color; ctx.shadowBlur = 12 * DPR;
-      ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
-      ctx.shadowBlur = 0;
-    }
-
-    // Particles
-    for (const p of game.particles) {
-      ctx.strokeStyle = p.color; ctx.globalAlpha = p.life / p.maxLife;
-      ctx.lineWidth = p.size * DPR; ctx.lineCap = 'round';
-      ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(p.x - p.vx * 0.05, p.y - p.vy * 0.05); ctx.stroke();
-    }
-    ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
-
-    // Drawing path
-    if (game.drawing && game.drawPath.length > 1) {
-      ctx.strokeStyle = '#5fd4ff'; ctx.shadowColor = '#5fd4ff'; ctx.shadowBlur = 10 * DPR;
-      ctx.lineWidth = 3 * DPR; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-      ctx.beginPath(); ctx.moveTo(game.drawPath[0].x, game.drawPath[0].y);
-      for (let i = 1; i < game.drawPath.length; i++) ctx.lineTo(game.drawPath[i].x, game.drawPath[i].y);
-      ctx.stroke(); ctx.shadowBlur = 0;
-      const last = game.drawPath[game.drawPath.length - 1];
-      ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(last.x, last.y, 4 * DPR, 0, Math.PI * 2); ctx.fill();
-    }
-  }
-
-  function drawWizard(x, y, color, flash = 0, shielded = false) {
-    ctx.save(); ctx.translate(x, y);
-    if (flash > 0) { ctx.shadowColor = '#fff'; ctx.shadowBlur = 30 * DPR * flash; }
-    else { ctx.shadowColor = color; ctx.shadowBlur = 18 * DPR; }
-    ctx.fillStyle = color; ctx.beginPath(); ctx.arc(0, 0, 22 * DPR, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = '#fff'; ctx.globalAlpha = 0.6;
-    ctx.beginPath(); ctx.arc(0, 0, 8 * DPR, 0, Math.PI * 2); ctx.fill();
-    ctx.globalAlpha = 1; ctx.shadowBlur = 0;
-    if (shielded) {
-      ctx.strokeStyle = '#fff'; ctx.lineWidth = 3 * DPR; ctx.shadowColor = '#fff'; ctx.shadowBlur = 12 * DPR;
-      ctx.beginPath(); ctx.arc(0, 0, 34 * DPR, 0, Math.PI * 2); ctx.stroke(); ctx.shadowBlur = 0;
-    }
-    ctx.restore();
-  }
-
-  // === Main loop ===
-  function frame(now) {
-    update(now);
-    render();
-    requestAnimationFrame(frame);
-  }
-  requestAnimationFrame(frame);
-
-  // Init HUD
-  document.getElementById('player-hp').style.width = '100%';
-  document.getElementById('ai-hp').style.width = '100%';
-  document.getElementById('wave-display').style.opacity = '0';
-  document.getElementById('score').style.display = 'none';
-})();
-</script>
+</div>
+<script src="./game.js"></script>
 </body>
 </html>

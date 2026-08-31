@@ -1,0 +1,20 @@
+{
+  "name": "SIGIL STRIKE",
+  "short_name": "SIGIL STRIKE",
+  "description": "Draw glyphs in real time to cast spells and survive the wizard duel.",
+  "id": "./game/",
+  "start_url": "./game/",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#07041a",
+  "theme_color": "#07041a",
+  "icons": [
+    {
+      "src": "pwa-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

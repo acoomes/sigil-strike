@@ -69,12 +69,14 @@ A wizard duel where you **draw glyphs in real-time to cast spells**. Click-and-d
 ## Technical choices
 
 - **No framework** — vanilla JS keeps it portable (works in any browser, easy to package for Steam via Electron later, easy to wrap for mobile via Cordova/Capacitor).
-- **Single file** — `index.html` with embedded CSS+JS for v0.1. Split when >1000 lines.
+- **Static modules** — `game/index.html`, `game/styles.css`, and `game/game.js` stay portable while keeping the now-1,900-line prototype maintainable.
 - **Canvas 2D** — sufficient for the visual style, no WebGL needed.
 - **No external assets** — all procedural (gradients, particles, text). Zero load time.
 
 ## Files
 
-- `index.html` — main game file
+- `game/index.html` — main game markup
+- `game/styles.css` — game styles
+- `game/game.js` — gameplay and rendering logic
 - `CONCEPT.md` — this file
 - `README.md` — quick start

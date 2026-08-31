@@ -1,5 +1,7 @@
 .DS_Store
 *.log
 node_modules/
+dist/
+test_results/
 steam_assets/*.png
 steam_assets/*.jpg

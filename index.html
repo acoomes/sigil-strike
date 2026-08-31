@@ -8,6 +8,11 @@
 <meta property="og:title" content="SIGIL STRIKE" />
 <meta property="og:description" content="Draw glyphs in real-time to cast spells. 4 elements, survival mode, upgrades." />
 <meta property="og:image" content="landing/assets/library_logo.png" />
+<meta name="theme-color" content="#07041a" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="apple-touch-icon" href="pwa-icon.svg" />
 <!-- Plausible analytics (self-hosted) -->
 <script defer data-domain="sigil-strike.ai.raeclaw.game" src="https://plausible.io/js/script.js"></script>
 <link rel="icon" href="landing/assets/library_logo.png" />
@@ -484,5 +489,12 @@
   } catch (e) { /* silent */ }
 </script>
 
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js').catch(() => {});
+    });
+  }
+</script>
 </body>
 </html>
